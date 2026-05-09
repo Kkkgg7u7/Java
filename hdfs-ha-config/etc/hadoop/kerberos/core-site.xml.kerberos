@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <!-- Kerberos Security Configuration -->
+  <property>
+    <name>hadoop.security.authentication</name>
+    <value>kerberos</value>
+  </property>
+  
+  <property>
+    <name>hadoop.security.authorization</name>
+    <value>true</value>
+  </property>
+
+  <!-- NameNode Kerberos principals -->
+  <property>
+    <name>dfs.namenode.kerberos.principal</name>
+    <value>nn/_HOST@EXAMPLE.COM</value>
+  </property>
+  
+  <property>
+    <name>dfs.namenode.keytab.file</name>
+    <value>/etc/security/keytabs/nn.service.keytab</value>
+  </property>
+
+  <!-- Secondary NameNode (if used) -->
+  <property>
+    <name>dfs.secondary.namenode.kerberos.principal</name>
+    <value>nn/_HOST@EXAMPLE.COM</value>
+  </property>
+  
+  <property>
+    <name>dfs.secondary.namenode.keytab.file</name>
+    <value>/etc/security/keytabs/nn.service.keytab</value>
+  </property>
+
+  <!-- DataNode Kerberos principals -->
+  <property>
+    <name>dfs.datanode.kerberos.principal</name>
+    <value>dn/_HOST@EXAMPLE.COM</value>
+  </property>
+  
+  <property>
+    <name>dfs.datanode.keytab.file</name>
+    <value>/etc/security/keytabs/dn.service.keytab</value>
+  </property>
+
+  <!-- JournalNode Kerberos principals -->
+  <property>
+    <name>dfs.journalnode.kerberos.principal</name>
+    <value>jn/_HOST@EXAMPLE.COM</value>
+  </property>
+  
+  <property>
+    <name>dfs.journalnode.keytab.file</name>
+    <value>/etc/security/keytabs/jn.service.keytab</value>
+  </property>
+
+  <!-- Web authentication -->
+  <property>
+    <name>hadoop.http.authentication.type</name>
+    <value>kerberos</value>
+  </property>
+  
+  <property>
+    <name>hadoop.http.authentication.kerberos.principal</name>
+    <value>HTTP/_HOST@EXAMPLE.COM</value>
+  </property>
+  
+  <property>
+    <name>hadoop.http.authentication.kerberos.keytab</name>
+    <value>/etc/security/keytabs/spnego.service.keytab</value>
+  </property>
+
+  <!-- Existing HA configurations below -->
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://mycluster</value>
+  </property>
+  
+  <property>
+    <name>hadoop.tmp.dir</name>
+    <value>/opt/hadoop/tmp</value>
+  </property>
+  
+  <property>
+    <name>ha.zookeeper.quorum</name>
+    <value>node1:2181,node2:2181,node3:2181</value>
+  </property>
+
+  <!-- Proxy users -->
+  <property>
+    <name>hadoop.proxyuser.hdfs.hosts</name>
+    <value>*</value>
+  </property>
+  
+  <property>
+    <name>hadoop.proxyuser.hdfs.groups</name>
+    <value>*</value>
+  </property>
+</configuration>
