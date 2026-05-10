@@ -23,6 +23,13 @@ mybatis:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+hadoop:
+  hdfs:
+    uri: hdfs://mycluster
+    user: hdfs
+    replication: 3
+    block-size: 134217728
+
 logging:
   level:
     com.account: debug

@@ -1,0 +1,12 @@
+com\account\service\impl\HdfsServiceImpl.class
+com\account\entity\FileStats.class
+com\account\entity\FileInfo.class
+com\account\service\HdfsService.class
+com\account\controller\PerformanceController$SimpleMultipartFile.class
+com\account\config\HadoopConfig.class
+com\account\controller\GlobalExceptionHandler.class
+com\account\controller\HdfsController.class
+com\account\controller\PerformanceController.class
+com\account\service\impl\FileAnalysisService.class
+com\account\util\HDFSUtil.class
+com\account\service\impl\BatchProcessingService.class
