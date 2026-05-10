@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} ?: '大数据演示系统'">大数据演示系统</title>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" th:href="@{/css/hdfs-demo.css}">
+    <!-- ECharts CDN -->
+    <script th:src="@{https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js}"></script>
+    <th:block th:if="${extraHead}">
+        <th:block th:replace="${extraHead}" />
+    </th:block>
+</head>
+<body>
+
+    <!-- ==================== Sidebar Navigation ==================== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-icon">&#x2B22;</div>
+            <div class="system-title">大数据演示系统</div>
+            <div class="logo-text">HDFS Demo Platform</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">功能导航</div>
+            <a class="nav-item active" id="nav-files" th:href="@{/}">
+                <span class="nav-icon">&#x1F4C1;</span>
+                <span>文件管理</span>
+            </a>
+            <a class="nav-item" id="nav-stats" th:href="@{/stats}">
+                <span class="nav-icon">&#x1F4CA;</span>
+                <span>统计分析</span>
+            </a>
+            <a class="nav-item" id="nav-perf" th:href="@{/performance}">
+                <span class="nav-icon">&#x26A1;</span>
+                <span>性能测试</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            HDFS Demo System v1.0
+        </div>
+    </aside>
+
+    <!-- ==================== Main Wrapper ==================== -->
+    <div class="main-wrapper" id="main-wrapper">
+        <!-- Top Header -->
+        <header class="top-header" id="top-header">
+            <span class="page-title" id="page-title" th:text="${pageTitle} ?: '文件管理'">文件管理</span>
+            <div class="header-actions">
+                <span class="header-badge" id="hdfs-status-badge">
+                    <span class="status-dot online" id="status-dot"></span>
+                    <span id="status-text">HDFS 在线</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content">
+            <!-- Toast container -->
+            <div class="toast-container" id="toast-container"></div>
+
+            <!-- Content will be injected here by child templates -->
+            <th:block th:replace="${contentFragment} ?: ~{}" />
+        </main>
+    </div>
+
+    <!-- ==================== Shared Modal ==================== -->
+    <div class="modal-backdrop" id="shared-modal-backdrop">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <span id="shared-modal-title">Modal Title</span>
+                <button class="modal-close" id="shared-modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="shared-modal-body">
+                Modal content here.
+            </div>
+            <div class="modal-footer" id="shared-modal-footer">
+                <button class="btn btn-outline" id="shared-modal-cancel">取消</button>
+                <button class="btn btn-primary" id="shared-modal-confirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Base Scripts ==================== -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // Shared toast utility
+        window.showToast = (function() {
+            var container = document.getElementById('toast-container');
+            var timer = null;
+            return function(msg, type) {
+                type = type || 'info';
+                var toast = document.createElement('div');
+                toast.className = 'toast toast-' + type;
+                toast.textContent = msg;
+                container.appendChild(toast);
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(function() {
+                    toast.remove();
+                }, 3500);
+            };
+        })();
+
+        // Shared modal utility
+        window.showModal = (function() {
+            var backdrop = document.getElementById('shared-modal-backdrop');
+            var titleEl = document.getElementById('shared-modal-title');
+            var bodyEl = document.getElementById('shared-modal-body');
+            var confirmBtn = document.getElementById('shared-modal-confirm');
+            var cancelBtn = document.getElementById('shared-modal-cancel');
+            var closeBtn = document.getElementById('shared-modal-close');
+            var confirmCb = null;
+
+            var hide = function() {
+                backdrop.classList.remove('active');
+                confirmCb = null;
+            };
+
+            closeBtn.onclick = hide;
+            cancelBtn.onclick = hide;
+            confirmBtn.onclick = function() {
+                if (confirmCb) confirmCb();
+                hide();
+            };
+
+            return function(title, bodyHTML, onConfirm, confirmText) {
+                titleEl.textContent = title || '提示';
+                bodyEl.innerHTML = bodyHTML || '';
+                confirmBtn.textContent = confirmText || '确认';
+                confirmBtn.style.display = onConfirm ? '' : 'none';
+                cancelBtn.style.display = onConfirm ? '' : 'none';
+                confirmCb = onConfirm || null;
+                backdrop.classList.add('active');
+            };
+        })();
+
+        window.hideModal = function() {
+            document.getElementById('shared-modal-backdrop').classList.remove('active');
+        };
+
+        // Sidebar active state management
+        (function() {
+            var navItems = document.querySelectorAll('.nav-item');
+            var currentPath = window.location.pathname;
+            navItems.forEach(function(item) {
+                item.classList.remove('active');
+                var href = item.getAttribute('href');
+                if (href === currentPath || (href !== '/' && currentPath.indexOf(href) === 0)) {
+                    item.classList.add('active');
+                }
+            });
+        })();
+
+        /*]]>*/
+    </script>
+
+    <!-- JS 业务模块（Member 5） -->
+    <script th:src="@{/js/api.js}"></script>
+    <script th:src="@{/js/charts.js}"></script>
+    <script th:src="@{/js/app.js}"></script>
+
+</body>
+</html>

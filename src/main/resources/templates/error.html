@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${errorTitle} ?: '系统错误'">系统错误</title>
+    <link rel="stylesheet" th:href="@{/css/hdfs-demo.css}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #E3F2FD 0%, #E0F7FA 100%);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        .error-container {
+            background: #FFFFFF;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(13, 59, 102, 0.10);
+            padding: 48px 44px;
+            max-width: 520px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid #E0E6ED;
+        }
+
+        .error-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+            line-height: 1;
+        }
+
+        .error-code {
+            font-size: 72px;
+            font-weight: 800;
+            color: #1565C0;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .error-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #263238;
+            margin-bottom: 12px;
+        }
+
+        .error-message {
+            font-size: 14px;
+            color: #546E7A;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            word-break: break-word;
+        }
+
+        .error-detail {
+            background: #F4F6F8;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            font-size: 12px;
+            color: #90A4AE;
+            text-align: left;
+            word-break: break-all;
+            font-family: "Consolas", "Courier New", monospace;
+            max-height: 160px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .error-detail.visible {
+            display: block;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 24px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #1565C0;
+            color: #FFFFFF;
+            border-color: #1565C0;
+        }
+
+        .btn-primary:hover {
+            background: #1254A1;
+            box-shadow: 0 2px 8px rgba(21,101,192,0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #1565C0;
+            border-color: #1565C0;
+        }
+
+        .btn-outline:hover {
+            background: #E3F2FD;
+        }
+
+        .btn-detail {
+            font-size: 12px;
+            color: #90A4AE;
+            cursor: pointer;
+            background: none;
+            border: none;
+            margin-top: 8px;
+            font-family: inherit;
+        }
+
+        .btn-detail:hover {
+            color: #546E7A;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <!-- Icon varies by status -->
+        <div class="error-icon" th:switch="${status}">
+            <span th:case="404">&#x1F50D;</span>
+            <span th:case="403">&#x1F6AB;</span>
+            <span th:case="500">&#x1F6A8;</span>
+            <span th:case="503">&#x1F527;</span>
+            <span th:case="*">&#x26A0;</span>
+        </div>
+
+        <!-- Error code -->
+        <div class="error-code" th:text="${status} ?: 'Error'">Error</div>
+
+        <!-- Title -->
+        <div class="error-title" th:text="${errorTitle} ?: '抱歉，出现了问题'">
+            抱歉，出现了问题
+        </div>
+
+        <!-- Message -->
+        <div class="error-message" th:text="${errorMessage} ?: '系统遇到了一个意外错误，请稍后重试。如果问题持续存在，请联系系统管理员。'">
+            系统遇到了一个意外错误，请稍后重试。如果问题持续存在，请联系系统管理员。
+        </div>
+
+        <!-- Technical Detail (collapsed by default) -->
+        <div class="error-detail" id="error-detail"
+             th:if="${errorDetail}">
+            <strong>详细信息:</strong><br>
+            <span th:text="${errorDetail}"></span>
+        </div>
+        <button class="btn-detail" id="btn-toggle-detail"
+                th:if="${errorDetail}" onclick="toggleDetail()">
+            显示技术详情
+        </button>
+
+        <!-- Action Buttons -->
+        <div class="error-actions" style="margin-top:20px;">
+            <a class="btn btn-primary" href="javascript:history.back()">
+                &#x2190; 返回上一页
+            </a>
+            <a class="btn btn-outline" th:href="@{/}">
+                &#x1F3E0; 返回首页
+            </a>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // Toggle technical detail visibility
+        window.toggleDetail = function() {
+            var detail = document.getElementById('error-detail');
+            var btn = document.getElementById('btn-toggle-detail');
+            if (detail.classList.contains('visible')) {
+                detail.classList.remove('visible');
+                btn.textContent = '显示技术详情';
+            } else {
+                detail.classList.add('visible');
+                btn.textContent = '隐藏技术详情';
+            }
+        };
+
+        // If error detail exists, make it toggle-able
+        (function() {
+            var detail = document.getElementById('error-detail');
+            if (detail && detail.textContent.trim()) {
+                // Keep it initially hidden even if server-rendered
+                detail.classList.remove('visible');
+            }
+        })();
+        /*]]>*/
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:with="pageTitle='文件管理', contentFragment='~{:: #demo-content}'">
+<head th:replace="fragments/layout :: head" />
+<body>
+
+    <!-- Main Demo Content Fragment -->
+    <main id="demo-content" th:fragment="demo-content">
+
+        <!-- ==================== Stats Cards Row ==================== -->
+        <section class="stats-grid" id="stats-grid">
+            <div class="stat-card card-files" id="stat-card-files">
+                <div class="stat-icon">&#x1F4C4;</div>
+                <div class="stat-info">
+                    <div class="stat-label">总文件数</div>
+                    <div class="stat-value" id="stat-total-files">--</div>
+                    <div class="stat-sub" id="stat-files-sub">加载中...</div>
+                </div>
+            </div>
+            <div class="stat-card card-size" id="stat-card-size">
+                <div class="stat-icon">&#x1F4BE;</div>
+                <div class="stat-info">
+                    <div class="stat-label">总大小</div>
+                    <div class="stat-value" id="stat-total-size">--</div>
+                    <div class="stat-sub" id="stat-size-sub">加载中...</div>
+                </div>
+            </div>
+            <div class="stat-card card-dirs" id="stat-card-dirs">
+                <div class="stat-icon">&#x1F4C2;</div>
+                <div class="stat-info">
+                    <div class="stat-label">目录数</div>
+                    <div class="stat-value" id="stat-dir-count">--</div>
+                    <div class="stat-sub" id="stat-dirs-sub">加载中...</div>
+                </div>
+            </div>
+            <div class="stat-card card-status" id="stat-card-status">
+                <div class="stat-icon">&#x1F6A6;</div>
+                <div class="stat-info">
+                    <div class="stat-label">HDFS 状态</div>
+                    <div class="stat-value" id="stat-hdfs-status">检测中</div>
+                    <div class="stat-sub" id="stat-status-sub">正在连接...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== File Browser Panel ==================== -->
+        <section class="panel" id="file-browser-panel">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <span class="panel-icon">&#x1F4C1;</span> 文件浏览器
+                </span>
+                <div class="toolbar-group">
+                    <button class="btn btn-outline btn-sm" id="btn-refresh" title="刷新">
+                        &#x21BB; 刷新
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breadcrumb Navigation -->
+            <nav class="breadcrumb" id="breadcrumb-nav">
+                <span class="breadcrumb-item breadcrumb-root" data-path="/" id="breadcrumb-root">/</span>
+            </nav>
+
+            <!-- Toolbar -->
+            <div class="toolbar" id="file-toolbar">
+                <button class="btn btn-outline btn-sm" id="btn-mkdir">
+                    &#x1F4C1;+ 新建目录
+                </button>
+                <button class="btn btn-outline btn-sm" id="btn-analyze">
+                    &#x1F50D; 深度分析
+                </button>
+                <input type="text" class="toolbar-input" id="input-mkdir-name"
+                       placeholder="目录名..." style="display:none;">
+                <button class="btn btn-teal btn-sm" id="btn-mkdir-confirm" style="display:none;">
+                    确认创建
+                </button>
+                <button class="btn btn-outline btn-sm" id="btn-mkdir-cancel" style="display:none;">
+                    取消
+                </button>
+            </div>
+
+            <!-- File Table -->
+            <div class="file-table-wrapper" id="file-table-wrapper">
+                <div class="spinner-overlay" id="table-spinner">
+                    <div class="spinner"></div>
+                    <span class="spinner-text">正在加载文件列表...</span>
+                </div>
+                <table class="file-table" id="file-table" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="name">
+                                文件名 <span class="sort-arrow">&#x25B2;</span>
+                            </th>
+                            <th class="sortable" data-sort="size" style="width:120px;">
+                                大小 <span class="sort-arrow">&#x25B2;</span>
+                            </th>
+                            <th class="sortable" data-sort="modificationTime" style="width:170px;">
+                                修改时间 <span class="sort-arrow">&#x25B2;</span>
+                            </th>
+                            <th style="width:180px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="file-table-body">
+                    </tbody>
+                </table>
+                <div class="empty-state" id="table-empty" style="display:none;">
+                    <div class="empty-icon">&#x1F4C2;</div>
+                    <div class="empty-title">此目录为空</div>
+                    <div class="empty-desc">点击上方工具栏按钮创建目录或上传文件</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== Analyze Result Panel ==================== -->
+        <section class="analyze-panel" id="analyze-panel">
+            <h4 style="margin-bottom:12px;color:var(--text-primary);">
+                &#x1F52C; 深度分析结果 - <span id="analyze-path">/</span>
+            </h4>
+            <div class="spinner-overlay" id="analyze-spinner" style="display:none;">
+                <div class="spinner"></div>
+                <span class="spinner-text">正在分析...</span>
+            </div>
+            <div class="analyze-grid" id="analyze-grid"></div>
+        </section>
+
+        <!-- ==================== File Upload Panel ==================== -->
+        <section class="panel" id="upload-panel">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <span class="panel-icon">&#x2B06;</span> 文件上传
+                </span>
+                <span style="font-size:12px;color:var(--text-muted);">
+                    支持拖拽上传，最大单文件 500MB
+                </span>
+            </div>
+            <div class="panel-body padded">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <!-- Drag-drop zone -->
+                    <div class="upload-zone" id="upload-zone">
+                        <div class="upload-icon" id="upload-icon">&#x2B06;</div>
+                        <div class="upload-text" id="upload-text">
+                            拖拽文件到此处，或点击选择文件
+                        </div>
+                        <div class="upload-hint" id="upload-hint">
+                            支持单个或批量上传
+                        </div>
+                        <input type="file" id="upload-file-input" name="files" multiple
+                               accept="*/*" />
+                    </div>
+
+                    <!-- Selected files list -->
+                    <div class="upload-file-list" id="upload-file-list" style="display:none;"></div>
+
+                    <!-- Path and button row -->
+                    <div class="upload-form-row" id="upload-form-row">
+                        <label for="upload-target-path" style="font-weight:600;font-size:13px;white-space:nowrap;">
+                            目标路径:
+                        </label>
+                        <input type="text" class="path-input" id="upload-target-path"
+                               name="path" value="/" placeholder="/" />
+                        <button type="button" class="btn btn-teal btn-lg" id="btn-upload-start">
+                            &#x2B06; 开始上传
+                        </button>
+                        <button type="button" class="btn btn-outline btn-lg"
+                                id="btn-upload-clear" style="display:none;">
+                            清空列表
+                        </button>
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="upload-progress" id="upload-progress">
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="progress-status">准备上传...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ==================== Performance Display Area ==================== -->
+        <section id="performance-section">
+            <h3 style="margin-bottom:16px;color:var(--text-primary);font-size:16px;">
+                &#x26A1; 性能测试展示
+            </h3>
+            <div class="charts-row" id="charts-row">
+                <!-- Chart 1: Read/Write Performance -->
+                <div class="chart-container" id="chart-container-perf">
+                    <div class="chart-header">
+                        &#x1F4CA; 读写性能对比
+                    </div>
+                    <div class="chart-body" id="chart-perf-body">
+                        <div class="spinner-overlay" id="chart-perf-spinner">
+                            <div class="spinner"></div>
+                            <span class="spinner-text">等待数据加载...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart 2: File Size Distribution -->
+                <div class="chart-container" id="chart-container-dist">
+                    <div class="chart-header">
+                        &#x1F4CA; 文件大小分布
+                    </div>
+                    <div class="chart-body" id="chart-dist-body">
+                        <div class="spinner-overlay" id="chart-dist-spinner">
+                            <div class="spinner"></div>
+                            <span class="spinner-text">等待数据加载...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart 3: Storage Overview (full width) -->
+                <div class="chart-container full-width" id="chart-container-storage">
+                    <div class="chart-header">
+                        &#x1F4CA; 存储概览
+                    </div>
+                    <div class="chart-body" id="chart-storage-body">
+                        <div class="spinner-overlay" id="chart-storage-spinner">
+                            <div class="spinner"></div>
+                            <span class="spinner-text">等待数据加载...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>
