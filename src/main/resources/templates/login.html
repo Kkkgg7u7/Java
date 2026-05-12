@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>登录 - 记账系统</title>
+    <link rel="stylesheet" href="/css/melody.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            margin: 0;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 350px;
+        }
+        .login-box h2 {
+            text-align: center;
+            color: #ff6b9d;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ffd1dc;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            border-color: #ff6b9d;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8a80 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .login-btn:hover {
+            transform: scale(1.02);
+        }
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+        .error-msg {
+            color: #ff4757;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>🍓 记账系统</h2>
+        <div class="form-group">
+            <label>用户名</label>
+            <input type="text" id="username" placeholder="请输入用户名" value="admin">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="password" placeholder="请输入密码" value="admin">
+        </div>
+        <button class="login-btn" onclick="login()">登录</button>
+        <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <script>
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!username || !password) {
+                errorMsg.textContent = '请输入用户名和密码';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            fetch('/user/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    window.location.href = '/index';
+                } else {
+                    errorMsg.textContent = data.msg;
+                    errorMsg.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                errorMsg.textContent = '登录失败，请重试';
+                errorMsg.style.display = 'block';
+            });
+        }
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>

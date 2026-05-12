@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>统计分析 - 记账系统</title>
+    <link rel="stylesheet" href="/css/melody.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background: #fff0f5;
+        }
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #ff6b9d 0%, #ff8a80 100%);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .nav-item {
+            color: white;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .page-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .chart-box {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        .chart-title {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">🍓 记账系统</div>
+        <a href="/index" class="nav-item">📊 首页</a>
+        <a href="/records" class="nav-item">📝 记账记录</a>
+        <a href="/accounts" class="nav-item">💳 账户管理</a>
+        <a href="/stats" class="nav-item active">📈 统计分析</a>
+    </div>
+
+    <div class="main-content">
+        <div class="page-title">统计分析</div>
+        <div class="charts">
+            <div class="chart-box">
+                <div class="chart-title">支出分类</div>
+                <div id="expenseChart" style="height: 350px;"></div>
+            </div>
+            <div class="chart-box">
+                <div class="chart-title">收入分类</div>
+                <div id="incomeChart" style="height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function initCharts() {
+            const expenseChart = echarts.init(document.getElementById('expenseChart'));
+            expenseChart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    type: 'pie',
+                    radius: '60%',
+                    data: [
+                        { name: '餐饮', value: 1500 },
+                        { name: '交通', value: 500 },
+                        { name: '购物', value: 1000 },
+                        { name: '娱乐', value: 600 },
+                        { name: '其他', value: 400 }
+                    ]
+                }]
+            });
+
+            const incomeChart = echarts.init(document.getElementById('incomeChart'));
+            incomeChart.setOption({
+                tooltip: { trigger: 'item' },
+                series: [{
+                    type: 'pie',
+                    radius: '60%',
+                    data: [
+                        { name: '工资', value: 8000 },
+                        { name: '奖金', value: 2000 },
+                        { name: '投资', value: 500 },
+                        { name: '其他', value: 300 }
+                    ]
+                }]
+            });
+
+            window.addEventListener('resize', () => {
+                expenseChart.resize();
+                incomeChart.resize();
+            });
+        }
+
+        initCharts();
+    </script>
+</body>
+</html>

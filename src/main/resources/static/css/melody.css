@@ -1,0 +1,213 @@
+/* 初始状态：按钮可见，表单隐藏且在下方 */
+.floating-btn {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    border-radius: 30px;
+    background: #6c5ce7;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.5s ease; /* 动画过渡 */
+    box-shadow: 0 10px 20px rgba(108, 92, 231, 0.3);
+}
+
+.record-form {
+    opacity: 0;
+    transform: translateY(50px); /* 在下方停留 */
+    transition: all 0.5s ease;
+}
+
+.action-box.active-bg {
+    background-image: linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url('your-pattern.png');
+    background-size: cover;
+}
+
+/* 激活状态（点击后） */
+.record-form.active {
+    opacity: 1;
+    transform: translateY(0); /* 升起 */
+}
+
+.floating-btn.fade-out {
+    opacity: 0;
+    pointer-events: none; /* 消失后不可点击 */
+    transform: scale(0.8);
+}
+
+
+
+/* --- 0. 全局初始化 (防止变形的关键) --- */
+        * {
+            box-sizing: border-box; /* 确保 padding 不会撑大盒子 */
+        }
+
+        :root {
+            --melody-pink: #FFB7C5;      
+            --melody-light: #FFF0F3;     
+            --melody-dark: #FF85A2;      
+            --melody-white: #FFFFFF;
+            --berry-brown: #7D4F50;      
+            --accent-red: #FF4D6D;       
+            --shadow: rgba(255, 133, 162, 0.2);
+        }
+
+        body { 
+            background-color: var(--melody-light); 
+            margin: 0; 
+            font-family: "Quicksand", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--berry-brown);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- 1. 侧边栏 (回归原生比例，修复变形) --- */
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0; /* 禁止侧边栏被压缩 */
+            background-color: #ffb9c8;
+            padding: 40px 0; /* 上下留白 */
+            display: flex;
+            flex-direction: column;
+            border-right: 4px solid var(--melody-pink);
+            z-index: 10;
+        }
+
+        .sidebar-logo {
+            font-size: 26px; 
+            font-weight: bold; 
+            text-align: center;
+            /* 调整负边距，使其与侧边栏对齐 */
+            margin: -40px 0 60px 0; 
+            color: #c31d3cdb;
+            background-color: rgba(255, 255, 255, 0.839);
+            padding: 35px 20px; 
+            border-radius: 0 0 0 0;
+        }
+
+        .nav-item {
+            padding: 16px 29px; 
+            margin-bottom: 12px; 
+            margin-left: 20px; /* 保持左边缩进 */
+            margin-right: 20px; /* 增加右边距 */
+            border-radius: 15px; 
+            cursor: pointer; 
+            text-decoration: none;
+            color: var(--berry-brown); 
+            font-weight: bold; 
+            display: flex;
+            align-items: center; 
+            transition: 0.3s; 
+            background: rgba(255, 255, 255, 0.778);
+        }
+
+        .nav-item:hover { 
+            background-color: var(--melody-dark); 
+            color: white; 
+            transform: scale(1.05); 
+        }
+
+        .nav-item i { margin-right: 15px; font-size: 20px; }
+
+        /* --- 2. 主内容区 --- */
+        .main-content {
+            flex: 1; 
+            padding: 30px 40px; 
+            overflow-y: auto;
+            background-image: radial-gradient(var(--melody-pink) 1px, transparent 0);
+            background-size: 30px 30px;
+        }
+
+        /* --- 3. 余额面板 --- */
+        .balance-dashboard {
+            background: white; border-radius: 40px; padding: 30px;
+            display: flex; justify-content: space-around;
+            box-shadow: 0 10px 30px var(--shadow); border: 4px solid var(--melody-pink);
+            margin-bottom: 30px; position: relative;
+        }
+        .balance-dashboard::before { content: "🎀"; position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 40px; }
+        .balance-item h2 { font-size: 36px; margin: 10px 0 0 0; color: var(--melody-dark); }
+        .eye-btn { cursor: pointer; color: var(--melody-pink); margin-left: 10px; vertical-align: middle; }
+        .eye-btn svg { width: 22px; height: 22px; }
+
+        /* --- 4. 记账交互区 --- */
+        .action-box {
+            background: rgba(255, 255, 255, 0.9); border-radius: 40px;
+            border: 3px dashed var(--melody-pink); padding: 100px;
+            min-height: 160px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; transition: 0.6s ease;
+        }
+        .action-box.active-state { background: #FFF; border: 3px solid var(--melody-dark); box-shadow: 0 20px 50px var(--shadow); }
+
+        .start-btn {
+            padding: 22px 90px; font-size: 24px; background-color: var(--melody-dark);
+            color: white; border: none; border-radius: 50px; cursor: pointer;
+            box-shadow: 0 8px 0 #E05D7A; transition: 0.3s; font-weight: bold;
+        }
+        .start-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 #E05D7A; }
+        .btn-hide { opacity: 0; transform: scale(0.5); pointer-events: none; position: absolute; }
+
+        .form-container { width: 100%; display: none; opacity: 0; transform: translateY(60px); transition: 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .form-rise-up { display: block; opacity: 1; transform: translateY(0); }
+
+        .record-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 40px; }
+        .form-group label { display: block; margin-bottom: 10px; font-weight: bold; color: var(--melody-dark); }
+
+        /* --- 5. ✨ 定制漂亮下拉菜单 --- */
+        .custom-select-wrapper { position: relative; user-select: none; width: 100%; }
+        .custom-select-trigger {
+            padding: 14px 20px; background: white; border: 3px solid var(--melody-light);
+            border-radius: 20px; cursor: pointer; display: flex;
+            justify-content: space-between; align-items: center; font-size: 16px;
+            transition: all 0.3s;
+        }
+        .custom-select-trigger:after { content: "🍓"; font-size: 14px; transition: transform 0.3s; }
+        .custom-select-wrapper.open .custom-select-trigger { border-color: var(--melody-pink); }
+        .custom-select-wrapper.open .custom-select-trigger:after { transform: rotate(180deg); }
+
+        .custom-options {
+            position: absolute; top: calc(100% + 10px); left: 0; right: 0;
+            background: white; border: 3px solid var(--melody-pink);
+            border-radius: 20px; box-shadow: 0 10px 25px var(--shadow);
+            opacity: 0; visibility: hidden; transform: translateY(-10px);
+            transition: all 0.3s; z-index: 100; overflow: hidden;
+        }
+        .custom-select-wrapper.open .custom-options { opacity: 1; visibility: visible; transform: translateY(0); }
+        .custom-option { padding: 12px 20px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid var(--melody-light); color: var(--berry-brown); }
+        .custom-option:hover { background: var(--melody-pink); color: white; }
+
+        /* 日期选择器 */
+        .pretty-input {
+            width: 100%; padding: 14px; border: 3px solid var(--melody-light); border-radius: 20px; 
+            outline: none; box-sizing: border-box; font-size: 16px; color: var(--berry-brown);
+            transition: all 0.3s; background-color: white;
+        }
+        input[type="date"].pretty-input::-webkit-calendar-picker-indicator {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF85A2'%3e%3cpath d='M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z'/%3e%3c/svg%3e");
+            width: 22px; height: 22px; cursor: pointer;
+        }
+
+        .save-btn { 
+            padding: 18px 80px; background: var(--melody-dark); color: white; 
+            border: none; border-radius: 40px; cursor: pointer; font-size: 20px; 
+            font-weight: bold; box-shadow: 0 6px 0 #E05D7A; transition: 0.2s;
+        }
+        .save-btn:active { transform: scale(0.95); }
+        .cancel-btn { background: transparent; color: #BBB; border: none; cursor: pointer; margin-top: 20px; }
+
+        /* 成功弹窗 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 183, 197, 0.4); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 200;
+        }
+        .modal-card {
+            background: white; padding: 40px; border-radius: 35px; border: 4px solid var(--melody-pink);
+            text-align: center; transform: scale(0.7); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-card.show { transform: scale(1); }
+        .close-modal-btn { padding: 10px 40px; background: var(--melody-dark); color: white; border: none; border-radius: 20px; cursor: pointer; }
+
+/* 隐藏类 */
+.hidden { display: none; }

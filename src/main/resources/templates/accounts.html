@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>账户管理 - 记账系统</title>
+    <link rel="stylesheet" href="/css/melody.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background: #fff0f5;
+        }
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #ff6b9d 0%, #ff8a80 100%);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .nav-item {
+            color: white;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .page-title {
+            font-size: 24px;
+            color: #333;
+        }
+        .add-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8a80 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .account-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        .account-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .account-type {
+            color: #888;
+            margin-bottom: 15px;
+        }
+        .account-balance {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">🍓 记账系统</div>
+        <a href="/index" class="nav-item">📊 首页</a>
+        <a href="/records" class="nav-item">📝 记账记录</a>
+        <a href="/accounts" class="nav-item active">💳 账户管理</a>
+        <a href="/stats" class="nav-item">📈 统计分析</a>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="page-title">账户管理</div>
+            <button class="add-btn">+ 添加账户</button>
+        </div>
+        <div class="accounts-grid" id="accountsGrid"></div>
+    </div>
+
+    <script>
+        function loadAccounts() {
+            fetch('/api/account/list')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        renderAccounts(data.data);
+                    }
+                });
+        }
+
+        function renderAccounts(accounts) {
+            const grid = document.getElementById('accountsGrid');
+            if (!accounts || accounts.length === 0) {
+                grid.innerHTML = '<div style="text-align:center;color:#888;padding:40px;grid-column:span3;">暂无账户</div>';
+                return;
+            }
+            grid.innerHTML = accounts.map(a => `
+                <div class="account-card">
+                    <div class="account-name">${a.accountName}</div>
+                    <div class="account-type">${a.accountType || ''}</div>
+                    <div class="account-balance">¥${a.balance || 0}</div>
+                </div>
+            `).join('');
+        }
+
+        loadAccounts();
+    </script>
+</body>
+</html>

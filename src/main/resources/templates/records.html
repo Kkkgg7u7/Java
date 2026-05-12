@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>记账记录 - 记账系统</title>
+    <link rel="stylesheet" href="/css/melody.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            display: flex;
+            min-height: 100vh;
+            background: #fff0f5;
+        }
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #ff6b9d 0%, #ff8a80 100%);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .nav-item {
+            color: white;
+            padding: 15px 20px;
+            margin: 5px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .page-title {
+            font-size: 24px;
+            color: #333;
+        }
+        .add-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #ff6b9d 0%, #ff8a80 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .records-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .record-item:last-child { border-bottom: none; }
+        .record-info { flex: 1; }
+        .record-category { font-weight: bold; margin-bottom: 5px; }
+        .record-date { color: #888; font-size: 14px; }
+        .record-amount { font-size: 20px; font-weight: bold; }
+        .record-amount.income { color: #52c41a; }
+        .record-amount.expense { color: #ff4d4f; }
+        .record-actions { margin-left: 20px; }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .btn-delete { background: #ff4d4f; color: white; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">🍓 记账系统</div>
+        <a href="/index" class="nav-item">📊 首页</a>
+        <a href="/records" class="nav-item active">📝 记账记录</a>
+        <a href="/accounts" class="nav-item">💳 账户管理</a>
+        <a href="/stats" class="nav-item">📈 统计分析</a>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="page-title">记账记录</div>
+            <button class="add-btn" onclick="showAddModal()">+ 添加记录</button>
+        </div>
+        <div class="records-list" id="recordsList"></div>
+    </div>
+
+    <script>
+        function loadRecords() {
+            fetch('/api/record/list')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        renderRecords(data.data);
+                    }
+                });
+        }
+
+        function renderRecords(records) {
+            const list = document.getElementById('recordsList');
+            if (!records || records.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#888;padding:40px;">暂无记录</div>';
+                return;
+            }
+            list.innerHTML = records.map(r => `
+                <div class="record-item">
+                    <div class="record-info">
+                        <div class="record-category">${r.category || '未分类'}</div>
+                        <div class="record-date">${r.recordDate || ''} · ${r.accountType || ''} · ${r.remark || ''}</div>
+                    </div>
+                    <div class="record-amount ${r.type === 1 ? 'income' : 'expense'}">
+                        ${r.type === 1 ? '+' : '-'}¥${r.amount}
+                    </div>
+                    <div class="record-actions">
+                        <button class="btn btn-delete" onclick="deleteRecord(${r.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddModal() {
+            alert('请完善添加记录功能');
+        }
+
+        function deleteRecord(id) {
+            if (confirm('确定删除？')) {
+                const formData = new FormData();
+                formData.append('id', id);
+                fetch('/api/record/delete', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        loadRecords();
+                    }
+                });
+            }
+        }
+
+        loadRecords();
+    </script>
+</body>
+</html>
