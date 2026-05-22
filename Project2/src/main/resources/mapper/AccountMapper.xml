@@ -21,6 +21,14 @@
         WHERE id = #{id}
     </select>
 
+    <select id="selectByUserIdAndName" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM account
+        WHERE user_id = #{userId}
+        AND (account_name = #{accountName} OR account_type = #{accountName})
+        LIMIT 1
+    </select>
+
     <select id="selectByUserId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM account

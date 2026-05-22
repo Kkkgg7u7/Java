@@ -24,6 +24,14 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public Account getByUserIdAndName(Long userId, String accountName) {
+        if (userId == null || accountName == null || accountName.trim().isEmpty()) {
+            return null;
+        }
+        return accountMapper.selectByUserIdAndName(userId, accountName);
+    }
+
+    @Override
     public List<Account> getByUserId(Long userId) {
         if (userId == null) {
             return null;

@@ -103,6 +103,32 @@
             margin-bottom: 15px;
             color: #333;
         }
+        .chart-fallback {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+            color: #666;
+        }
+        .fallback-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 80px;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .fallback-bar {
+            height: 12px;
+            border-radius: 6px;
+            background: #ffd1dc;
+            overflow: hidden;
+        }
+        .fallback-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: #ff6b9d;
+        }
     </style>
 </head>
 <body>
@@ -161,6 +187,8 @@
                         document.getElementById('totalIncome').textContent = '¥' + (d.monthlyIncome || 0);
                         document.getElementById('totalExpense').textContent = '¥' + (d.monthlyExpense || 0);
                         document.getElementById('totalBalance').textContent = '¥' + (d.totalBalance || 0);
+                    } else if (data.message === '请先登录') {
+                        window.location.href = '/user/login';
                     }
                 });
 
@@ -172,47 +200,96 @@
                     }
                 });
 
-            initTrendChart();
+            fetch('/api/statistics/trend')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        initTrendChart(data.data || []);
+                    }
+                });
         }
 
-        function initTrendChart() {
-            const chart = echarts.init(document.getElementById('trendChart'));
+        function initTrendChart(data) {
+            const chartEl = document.getElementById('trendChart');
+            const months = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+            const income = Array(12).fill(0);
+            const expense = Array(12).fill(0);
+            (data || []).forEach(item => {
+                const month = Number(item.recordMonth || item.month);
+                if (month >= 1 && month <= 12) {
+                    income[month - 1] = Number(item.totalIncome || 0);
+                    expense[month - 1] = Number(item.totalExpense || 0);
+                }
+            });
+            if (typeof echarts === 'undefined') {
+                renderFallbackRows(chartEl, months.map((m, i) => ({
+                    name: m,
+                    value: income[i] + expense[i]
+                })).filter(item => item.value > 0));
+                return;
+            }
+            const chart = echarts.init(chartEl);
             chart.setOption({
                 tooltip: { trigger: 'axis' },
                 legend: { data: ['收入', '支出'] },
-                xAxis: { type: 'category', data: ['1月', '2月', '3月', '4月', '5月', '6月'] },
+                xAxis: { type: 'category', data: months },
                 yAxis: { type: 'value' },
                 series: [
-                    { name: '收入', type: 'line', smooth: true, data: [8000, 9000, 8500, 9200, 8800, 9500], color: '#52c41a' },
-                    { name: '支出', type: 'line', smooth: true, data: [4000, 4500, 4200, 4800, 4600, 5000], color: '#ff4d4f' }
+                    { name: '收入', type: 'line', smooth: true, data: income, color: '#52c41a' },
+                    { name: '支出', type: 'line', smooth: true, data: expense, color: '#ff4d4f' }
                 ]
             });
         }
 
         function initCategoryChart(data) {
-            const chart = echarts.init(document.getElementById('categoryChart'));
-            const chartData = data ? data.map(item => ({ name: item.categoryName || item.category, value: item.totalAmount || item.amount })) : [
-                { name: '餐饮', value: 1500 },
-                { name: '交通', value: 500 },
-                { name: '购物', value: 1000 },
-                { name: '娱乐', value: 600 },
-                { name: '其他', value: 400 }
-            ];
+            const chartEl = document.getElementById('categoryChart');
+            const chartData = data ? data.map(item => ({
+                name: item.categoryName || item.category || '其他',
+                value: Number(item.totalAmount || item.amount || 0)
+            })) : [];
+            if (typeof echarts === 'undefined') {
+                renderFallbackRows(chartEl, chartData);
+                return;
+            }
+            const chart = echarts.init(chartEl);
             chart.setOption({
                 tooltip: { trigger: 'item' },
                 series: [{
                     type: 'pie',
                     radius: '60%',
-                    data: chartData,
+                    data: chartData.length > 0 ? chartData : [{ name: '暂无数据', value: 0 }],
                     emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
                 }]
             });
         }
 
+        function renderFallbackRows(container, data) {
+            const rows = data && data.length > 0 ? data : [{ name: '暂无数据', value: 0 }];
+            const max = Math.max(...rows.map(item => Number(item.value || 0)), 1);
+            container.innerHTML = `<div class="chart-fallback">${rows.map(item => {
+                const value = Number(item.value || 0);
+                const width = Math.max(value / max * 100, value > 0 ? 8 : 0);
+                return `<div class="fallback-row">
+                    <span>${item.name}</span>
+                    <div class="fallback-bar"><div class="fallback-fill" style="width:${width}%"></div></div>
+                    <span>¥${value}</span>
+                </div>`;
+            }).join('')}</div>`;
+        }
+
         loadDashboard();
         window.addEventListener('resize', () => {
-            echarts.getInstanceByDom(document.getElementById('trendChart')).resize();
-            echarts.getInstanceByDom(document.getElementById('categoryChart')).resize();
+            if (typeof echarts === 'undefined') {
+                return;
+            }
+            const trendChart = echarts.getInstanceByDom(document.getElementById('trendChart'));
+            const categoryChart = echarts.getInstanceByDom(document.getElementById('categoryChart'));
+            if (trendChart) {
+                trendChart.resize();
+            }
+            if (categoryChart) {
+                categoryChart.resize();
+            }
         });
     </script>
 </body>

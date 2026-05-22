@@ -33,6 +33,10 @@ public interface RecordMapper {
                                                  @Param("year") Integer year,
                                                  @Param("month") Integer month);
 
+    Map<String, Object> selectSummaryStatistics(@Param("userId") Long userId,
+                                                @Param("year") Integer year,
+                                                @Param("month") Integer month);
+
     List<Map<String, Object>> selectCategoryStatistics(@Param("userId") Long userId,
                                                         @Param("type") Integer type,
                                                         @Param("year") Integer year,

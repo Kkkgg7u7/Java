@@ -43,6 +43,19 @@ public class StatisticsController {
         return Result.success(data);
     }
 
+    @GetMapping("/summary")
+    public Result summary(@RequestParam(required = false) Integer year,
+                          @RequestParam(required = false) Integer month,
+                          HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error("请先登录");
+        }
+
+        Map<String, Object> data = statisticsService.getSummary(userId, year, month);
+        return Result.success(data);
+    }
+
     @GetMapping("/category/expense")
     public Result categoryExpense(@RequestParam(required = false) Integer year,
                                   @RequestParam(required = false) Integer month,
@@ -66,6 +79,18 @@ public class StatisticsController {
         }
         
         List<Map<String, Object>> data = statisticsService.getIncomeCategoryDistribution(userId, year, month);
+        return Result.success(data);
+    }
+
+    @GetMapping("/trend")
+    public Result trend(@RequestParam(required = false) Integer year,
+                        HttpSession session) {
+        Long userId = (Long) session.getAttribute("userId");
+        if (userId == null) {
+            return Result.error("请先登录");
+        }
+
+        List<Map<String, Object>> data = statisticsService.getMonthlyTrend(userId, year);
         return Result.success(data);
     }
 }

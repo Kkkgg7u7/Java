@@ -11,6 +11,9 @@ public interface AccountMapper {
 
     Account selectById(@Param("id") Long id);
 
+    Account selectByUserIdAndName(@Param("userId") Long userId,
+                                  @Param("accountName") String accountName);
+
     List<Account> selectByUserId(@Param("userId") Long userId);
 
     int insert(Account account);

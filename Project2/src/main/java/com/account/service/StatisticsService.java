@@ -10,6 +10,8 @@ public interface StatisticsService {
 
     Map<String, Object> getMonthlySummary(Long userId, Integer year, Integer month);
 
+    Map<String, Object> getSummary(Long userId, Integer year, Integer month);
+
     List<Map<String, Object>> getExpenseCategoryDistribution(Long userId, Integer year, Integer month);
 
     List<Map<String, Object>> getIncomeCategoryDistribution(Long userId, Integer year, Integer month);

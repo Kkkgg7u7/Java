@@ -68,6 +68,34 @@
             border-radius: 15px;
             padding: 20px;
         }
+        .filter-bar {
+            display: grid;
+            grid-template-columns: 120px 1fr 1fr 150px 150px auto auto;
+            gap: 12px;
+            background: white;
+            border-radius: 15px;
+            padding: 18px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            min-width: 0;
+        }
+        .filter-btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            background: #1890ff;
+            white-space: nowrap;
+        }
+        .reset-btn {
+            background: #999;
+        }
         .record-item {
             display: flex;
             justify-content: space-between;
@@ -107,16 +135,106 @@
             <div class="page-title">记账记录</div>
             <button class="add-btn" onclick="showAddModal()">+ 添加记录</button>
         </div>
+        <div class="filter-bar">
+            <select id="filterType" onchange="loadFilterCategories()">
+                <option value="">全部类型</option>
+                <option value="0">支出</option>
+                <option value="1">收入</option>
+            </select>
+            <select id="filterCategory">
+                <option value="">全部分类</option>
+            </select>
+            <select id="filterAccount">
+                <option value="">全部账户</option>
+            </select>
+            <input type="date" id="filterStartDate">
+            <input type="date" id="filterEndDate">
+            <button class="filter-btn" onclick="loadRecords()">筛选</button>
+            <button class="filter-btn reset-btn" onclick="resetFilters()">重置</button>
+        </div>
         <div class="records-list" id="recordsList"></div>
     </div>
 
+    <!-- 添加/编辑记录模态框 -->
+    <div id="recordModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:15px;padding:30px;width:90%;max-width:500px;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            <div style="font-size:20px;font-weight:bold;margin-bottom:20px;" id="modalTitle">添加记录</div>
+            
+            <form onsubmit="saveRecord(event)">
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">日期 *</label>
+                    <input type="date" id="recordDate" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;"/>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">类型 *</label>
+                    <div>
+                        <label style="margin-right:20px;cursor:pointer;">
+                            <input type="radio" name="type" value="0" checked onclick="updateCategories()"> 支出
+                        </label>
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="type" value="1" onclick="updateCategories()"> 收入
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">分类 *</label>
+                    <select id="category" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                        <option value="">-- 选择分类 --</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">账户 *</label>
+                    <select id="accountType" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                        <option value="">-- 选择账户 --</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">金额 *</label>
+                    <input type="number" id="amount" step="0.01" min="0" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;"/>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">备注</label>
+                    <textarea id="remark" rows="3" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;"></textarea>
+                </div>
+
+                <div style="display:flex;gap:10px;">
+                    <button type="submit" style="flex:1;padding:12px;background:#ff6b9d;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">保存</button>
+                    <button type="button" onclick="closeModal()" style="flex:1;padding:12px;background:#ddd;color:#333;border:none;border-radius:6px;cursor:pointer;">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        let editingRecordId = null;
+        let cachedRecords = [];
+
         function loadRecords() {
-            fetch('/api/record/list')
+            const params = new URLSearchParams();
+            const type = document.getElementById('filterType').value;
+            const category = document.getElementById('filterCategory').value;
+            const accountType = document.getElementById('filterAccount').value;
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            if (type) params.append('type', type);
+            if (category) params.append('category', category);
+            if (accountType) params.append('accountType', accountType);
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+            const query = params.toString();
+            fetch('/api/record/list' + (query ? '?' + query : ''))
                 .then(res => res.json())
                 .then(data => {
                     if (data.code === 200) {
+                        cachedRecords = data.data || [];
                         renderRecords(data.data);
+                    } else if (data.message === '请先登录') {
+                        window.location.href = '/user/login';
                     }
                 });
         }
@@ -137,14 +255,173 @@
                         ${r.type === 1 ? '+' : '-'}¥${r.amount}
                     </div>
                     <div class="record-actions">
+                        <button class="btn" style="background:#1890ff;color:white;" onclick="editRecord(${r.id})">编辑</button>
                         <button class="btn btn-delete" onclick="deleteRecord(${r.id})">删除</button>
                     </div>
                 </div>
             `).join('');
         }
 
+        function loadCategories(type) {
+            return fetch(`/api/category/list?type=${type}`)
+                .then(res => res.json())
+                .then(data => data.code === 200 ? data.data : []);
+        }
+
+        function loadAccounts() {
+            return fetch('/api/account/list')
+                .then(res => res.json())
+                .then(data => data.code === 200 ? data.data : []);
+        }
+
+        function loadFilterCategories() {
+            const type = document.getElementById('filterType').value;
+            const url = type ? `/api/category/list?type=${type}` : '/api/category/list';
+            return fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('filterCategory');
+                    select.innerHTML = '<option value="">全部分类</option>';
+                    if (data.code === 200) {
+                        data.data.forEach(c => {
+                            const option = document.createElement('option');
+                            option.value = c.categoryName;
+                            option.textContent = `${c.type === 1 ? '收入' : '支出'} - ${c.categoryName}`;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+        }
+
+        function loadFilterAccounts() {
+            return loadAccounts().then(accounts => {
+                const select = document.getElementById('filterAccount');
+                select.innerHTML = '<option value="">全部账户</option>';
+                accounts.forEach(a => {
+                    const option = document.createElement('option');
+                    option.value = a.accountName;
+                    option.textContent = a.accountName;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterAccount').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            loadFilterCategories();
+            loadRecords();
+        }
+
+        function updateCategories(selectedCategory) {
+            const type = document.querySelector('input[name="type"]:checked').value;
+            return loadCategories(type).then(categories => {
+                const select = document.getElementById('category');
+                select.innerHTML = '<option value="">-- 选择分类 --</option>';
+                categories.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c.categoryName;
+                    option.textContent = c.categoryName;
+                    select.appendChild(option);
+                });
+                if (selectedCategory) {
+                    select.value = selectedCategory;
+                }
+            });
+        }
+
+        function updateAccounts(selectedAccount) {
+            return loadAccounts().then(accounts => {
+                const select = document.getElementById('accountType');
+                select.innerHTML = '<option value="">-- 选择账户 --</option>';
+                accounts.forEach(a => {
+                    const option = document.createElement('option');
+                    option.value = a.accountName;
+                    option.textContent = a.accountName;
+                    select.appendChild(option);
+                });
+                if (selectedAccount) {
+                    select.value = selectedAccount;
+                }
+            });
+        }
+
         function showAddModal() {
-            alert('请完善添加记录功能');
+            editingRecordId = null;
+            document.getElementById('modalTitle').textContent = '添加记录';
+            document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
+            document.querySelector('input[name="type"][value="0"]').checked = true;
+            document.getElementById('amount').value = '';
+            document.getElementById('remark').value = '';
+            updateCategories();
+            updateAccounts();
+            document.getElementById('recordModal').style.display = 'flex';
+        }
+
+        function editRecord(id) {
+            const record = cachedRecords.find(r => r.id === id);
+            if (!record) {
+                alert('未找到该记录，请刷新后重试');
+                return;
+            }
+            editingRecordId = id;
+            document.getElementById('modalTitle').textContent = '编辑记录';
+            document.getElementById('recordDate').value = record.recordDate;
+            document.querySelector(`input[name="type"][value="${record.type}"]`).checked = true;
+            document.getElementById('amount').value = record.amount;
+            document.getElementById('remark').value = record.remark || '';
+            Promise.all([
+                updateCategories(record.category),
+                updateAccounts(record.accountType)
+            ]).then(() => {
+                document.getElementById('recordModal').style.display = 'flex';
+            });
+        }
+
+        function saveRecord(event) {
+            event.preventDefault();
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const recordDate = document.getElementById('recordDate').value;
+            const category = document.getElementById('category').value;
+            const accountType = document.getElementById('accountType').value;
+            const amount = document.getElementById('amount').value;
+            const remark = document.getElementById('remark').value;
+
+            if (!recordDate || !category || !accountType || !amount) {
+                alert('请填写所有必填项');
+                return;
+            }
+
+            const url = editingRecordId ? '/api/record/update' : '/api/record/add';
+            const params = new FormData();
+            params.append('type', type);
+            params.append('recordDate', recordDate);
+            params.append('category', category);
+            params.append('accountType', accountType);
+            params.append('amount', amount);
+            params.append('remark', remark);
+            if (editingRecordId) {
+                params.append('id', editingRecordId);
+            }
+
+            fetch(url, { method: 'POST', body: params })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        closeModal();
+                        loadRecords();
+                    } else {
+                        alert(data.message || '操作失败');
+                    }
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('recordModal').style.display = 'none';
+            editingRecordId = null;
         }
 
         function deleteRecord(id) {
@@ -159,11 +436,22 @@
                 .then(data => {
                     if (data.code === 200) {
                         loadRecords();
+                    } else {
+                        alert(data.message || '删除失败');
                     }
                 });
             }
         }
 
+        // 点击模态框外关闭
+        document.getElementById('recordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        loadFilterCategories();
+        loadFilterAccounts();
         loadRecords();
     </script>
 </body>

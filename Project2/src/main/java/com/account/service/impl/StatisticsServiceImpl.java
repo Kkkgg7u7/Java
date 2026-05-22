@@ -89,15 +89,36 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public List<Map<String, Object>> getExpenseCategoryDistribution(Long userId, Integer year, Integer month) {
+    public Map<String, Object> getSummary(Long userId, Integer year, Integer month) {
         if (userId == null) {
             return null;
         }
-        if (year == null) {
-            year = DateUtil.getCurrentYear();
+        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> stats = recordMapper.selectSummaryStatistics(userId, year, month);
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpense = BigDecimal.ZERO;
+        if (stats != null) {
+            Object income = stats.get("totalIncome");
+            Object expense = stats.get("totalExpense");
+            if (income != null) {
+                totalIncome = new BigDecimal(income.toString());
+            }
+            if (expense != null) {
+                totalExpense = new BigDecimal(expense.toString());
+            }
         }
-        if (month == null) {
-            month = DateUtil.getCurrentMonth();
+        result.put("year", year);
+        result.put("month", month);
+        result.put("totalIncome", BigDecimalUtil.scale(totalIncome));
+        result.put("totalExpense", BigDecimalUtil.scale(totalExpense));
+        result.put("balance", BigDecimalUtil.scale(BigDecimalUtil.subtract(totalIncome, totalExpense)));
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> getExpenseCategoryDistribution(Long userId, Integer year, Integer month) {
+        if (userId == null) {
+            return null;
         }
         return recordMapper.selectCategoryStatistics(userId, 0, year, month);
     }
@@ -106,12 +127,6 @@ public class StatisticsServiceImpl implements StatisticsService {
     public List<Map<String, Object>> getIncomeCategoryDistribution(Long userId, Integer year, Integer month) {
         if (userId == null) {
             return null;
-        }
-        if (year == null) {
-            year = DateUtil.getCurrentYear();
-        }
-        if (month == null) {
-            month = DateUtil.getCurrentMonth();
         }
         return recordMapper.selectCategoryStatistics(userId, 1, year, month);
     }

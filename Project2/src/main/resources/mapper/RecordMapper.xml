@@ -75,8 +75,18 @@
             COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS totalExpense
         FROM record
         WHERE user_id = #{userId}
-        AND YEAR(record_date) = #{year}
-        AND MONTH(record_date) = #{month}
+        AND EXTRACT(YEAR FROM record_date) = #{year}
+        AND EXTRACT(MONTH FROM record_date) = #{month}
+    </select>
+
+    <select id="selectSummaryStatistics" resultType="java.util.Map">
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS totalIncome,
+            COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS totalExpense
+        FROM record
+        WHERE user_id = #{userId}
+        <if test="year != null">AND EXTRACT(YEAR FROM record_date) = #{year}</if>
+        <if test="month != null">AND EXTRACT(MONTH FROM record_date) = #{month}</if>
     </select>
 
     <select id="selectCategoryStatistics" resultType="java.util.Map">
@@ -86,22 +96,22 @@
         FROM record
         WHERE user_id = #{userId}
         AND type = #{type}
-        <if test="year != null">AND YEAR(record_date) = #{year}</if>
-        <if test="month != null">AND MONTH(record_date) = #{month}</if>
+        <if test="year != null">AND EXTRACT(YEAR FROM record_date) = #{year}</if>
+        <if test="month != null">AND EXTRACT(MONTH FROM record_date) = #{month}</if>
         GROUP BY category
         ORDER BY totalAmount DESC
     </select>
 
     <select id="selectMonthlyTrend" resultType="java.util.Map">
         SELECT
-            MONTH(record_date) AS month,
+            EXTRACT(MONTH FROM record_date) AS recordMonth,
             COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS totalIncome,
             COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS totalExpense
         FROM record
         WHERE user_id = #{userId}
-        AND YEAR(record_date) = #{year}
-        GROUP BY MONTH(record_date)
-        ORDER BY month
+        AND EXTRACT(YEAR FROM record_date) = #{year}
+        GROUP BY EXTRACT(MONTH FROM record_date)
+        ORDER BY recordMonth
     </select>
 
 </mapper>

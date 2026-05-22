@@ -8,6 +8,8 @@ public interface AccountService {
 
     Account getById(Long id);
 
+    Account getByUserIdAndName(Long userId, String accountName);
+
     List<Account> getByUserId(Long userId);
 
     boolean add(Account account);
