@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HDFS 归档中心 - 财务数据控制台</title>
+    <link rel="stylesheet" href="/css/melody.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="/css/bigdata.css">
+</head>
+<body class="app-body">
+    <div class="sidebar">
+        <div class="logo">财务数据控制台</div>
+        <div class="nav-section">总览</div>
+        <a href="/index" class="nav-item">财务工作台</a>
+        <div class="nav-section">财务管理</div>
+        <a href="/accounts" class="nav-item">账户视图</a>
+        <a href="/records" class="nav-item">流水明细</a>
+        <a href="/stats" class="nav-item">财务分析</a>
+        <div class="nav-section">数据平台</div>
+        <a href="/bigdata" class="nav-item active">HDFS 归档中心</a>
+    </div>
+
+    <div class="main-content archive-page">
+        <div class="topbar">
+            <div class="global-search">
+                <span>搜索 HDFS 路径、归档文件或批次记录</span>
+            </div>
+            <div class="topbar-actions">
+                <span class="badge ok">Spring Boot 服务</span>
+                <span class="badge archive">Hadoop FileSystem API</span>
+                <span class="status-pill" id="statusPill">检测中</span>
+            </div>
+        </div>
+
+        <section class="page-header">
+            <div>
+                <div class="page-eyebrow">数据平台</div>
+                <h1 class="page-title">HDFS 归档中心</h1>
+                <div class="page-description">将财务流水按批次归档至 HDFS，支持文件上传、文件浏览、数据预览、目录分析与读写吞吐验证。</div>
+            </div>
+            <div class="topbar-actions">
+                <a class="btn secondary" href="/index">返回工作台</a>
+                <button class="btn" onclick="runPerformance()">开始归档验证</button>
+            </div>
+        </section>
+
+        <section class="archive-command">
+            <div class="archive-command-main">
+                <div class="command-title">归档访问链路</div>
+                <div class="command-flow">
+                    <div><strong>前端操作</strong><span>Thymeleaf View</span></div>
+                    <div><strong>Spring Boot</strong><span>Controller / Service</span></div>
+                    <div><strong>Hadoop Client</strong><span>FileSystem API</span></div>
+                    <div><strong>HDFS</strong><span>归档目录</span></div>
+                </div>
+            </div>
+            <div class="api-proof">
+                <div class="panel-title">FileSystem API 证据</div>
+                <div class="api-proof-grid">
+                    <span>FileSystem.create</span>
+                    <span>FileSystem.open</span>
+                    <span>FileSystem.listStatus</span>
+                    <span>FileSystem.getContentSummary</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="archive-status-grid">
+            <div class="card kpi-card">
+                <div class="card-label">HDFS 连接状态</div>
+                <div class="card-value archive" id="connectionState">检测中</div>
+                <div class="message" id="healthMessage"></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="card-label">NameNode / DefaultFS</div>
+                <div class="card-value path-cell" id="fsUri">--</div>
+            </div>
+            <div class="card kpi-card">
+                <div class="card-label">归档根目录</div>
+                <div class="card-value path-cell" id="baseDir">--</div>
+            </div>
+            <div class="card kpi-card">
+                <div class="card-label">连接探测耗时</div>
+                <div class="card-value green" id="probeMillis">--</div>
+            </div>
+        </div>
+
+        <div class="tab-bar">
+            <button class="tab-item active" data-tab="performance">归档任务</button>
+            <button class="tab-item" data-tab="files">文件浏览器</button>
+            <button class="tab-item" data-tab="analysis">容量与预览</button>
+            <button class="tab-item" data-tab="charts">结果图表</button>
+            <button class="tab-item" data-tab="config">客户端配置</button>
+        </div>
+
+        <div class="tab-content active" id="tab-performance">
+            <div class="archive-workbench">
+                <div class="panel">
+                    <div class="panel-title">数据归档任务</div>
+                    <div class="page-description">生成财务流水文件，写入 Hadoop FileSystem 后执行批量读取，统计 HDFS 写入吞吐、读取吞吐与记录处理能力。</div>
+                    <div class="preset-row" aria-label="归档验证参数预设">
+                        <button class="preset-btn active" data-files="4" data-records="20000" data-payload="128" onclick="applyPreset(this)">快速批次</button>
+                        <button class="preset-btn" data-files="6" data-records="100000" data-payload="256" onclick="applyPreset(this)">标准批次</button>
+                        <button class="preset-btn" data-files="8" data-records="300000" data-payload="512" onclick="applyPreset(this)">大批量归档</button>
+                    </div>
+                    <div class="toolbar archive-toolbar">
+                        <div class="field">
+                            <label>归档文件数</label>
+                            <input id="filesInput" type="number" min="1" max="32" value="4">
+                        </div>
+                        <div class="field">
+                            <label>流水记录数</label>
+                            <input id="recordsInput" type="number" min="1" max="2000000" value="20000">
+                        </div>
+                        <div class="field">
+                            <label>单条记录载荷</label>
+                            <input id="payloadInput" type="number" min="16" max="4096" value="128">
+                        </div>
+                        <label class="switch-field">
+                            <input id="cleanInput" type="checkbox">
+                            <span>完成后清理临时文件</span>
+                        </label>
+                        <button class="btn" id="runPerfBtn" onclick="runPerformance()">开始归档</button>
+                    </div>
+                    <div class="progress" id="progressBar"><div></div></div>
+                    <div class="message" id="performanceMessage">等待发起归档任务。</div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">最近批次结果</div>
+                    <div class="result-grid">
+                        <div class="metric"><div class="metric-label">写入吞吐</div><div class="metric-value" id="writeRate">--</div></div>
+                        <div class="metric"><div class="metric-label">读取吞吐</div><div class="metric-value" id="readRate">--</div></div>
+                        <div class="metric"><div class="metric-label">处理速率</div><div class="metric-value" id="recordRate">--</div></div>
+                        <div class="metric"><div class="metric-label">总耗时</div><div class="metric-value" id="totalMillis">--</div></div>
+                        <div class="metric"><div class="metric-label">数据量</div><div class="metric-value" id="bytesValue">--</div></div>
+                        <div class="metric"><div class="metric-label">流水记录</div><div class="metric-value" id="recordsValue">--</div></div>
+                        <div class="metric"><div class="metric-label">归档文件</div><div class="metric-value" id="filesValue">--</div></div>
+                        <div class="metric"><div class="metric-label">输出路径</div><div class="metric-value path-cell" id="pathValue">--</div></div>
+                    </div>
+                    <div class="lab-report">
+                        <div>
+                            <div class="report-title">批次摘要</div>
+                            <div class="message" id="reportSummary">归档完成后，这里会汇总写入、读取、数据量和 HDFS 输出目录。</div>
+                        </div>
+                        <button class="btn secondary" id="openRunFilesBtn" onclick="openLatestRunFiles()" disabled>查看归档文件</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-files">
+            <div class="file-browser">
+                <aside class="directory-panel">
+                    <div class="panel-title">目录树</div>
+                    <div class="directory-tree">
+                        <div class="tree-node active">/ finance</div>
+                        <div class="tree-node indent">archive</div>
+                        <div class="tree-node indent-2">2026</div>
+                        <div class="tree-node indent-3">05</div>
+                        <div class="tree-node">upload</div>
+                        <div class="tree-node">backup</div>
+                    </div>
+                    <div class="message">目录树用于展示财务归档结构；实际文件列表来自 HDFS 接口。</div>
+                </aside>
+
+                <section class="panel">
+                    <div class="panel-title">HDFS 文件浏览器</div>
+                    <div class="page-description">浏览财务归档目录中的账期文件与批次文件，支持上传、预览、下载和清理。</div>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">上传文件</div>
+                        <div class="upload-text">点击或拖拽文件到当前归档目录，通过 Spring Boot 写入 Hadoop FileSystem</div>
+                        <input type="file" id="fileInput" style="display:none;" multiple>
+                    </div>
+                    <div class="upload-progress" id="uploadProgress">
+                        <div class="upload-progress-bar"><div id="uploadProgressBar" style="width:0%"></div></div>
+                        <div class="message" id="uploadMessage"></div>
+                    </div>
+
+                    <div class="toolbar file-toolbar">
+                        <div class="field">
+                            <label>当前路径</label>
+                            <input id="listPathInput" type="text" placeholder="默认使用归档目录">
+                        </div>
+                        <button class="btn secondary" onclick="loadFiles()">刷新</button>
+                        <button class="btn secondary" onclick="createDir()">新建目录</button>
+                        <button class="btn danger" onclick="batchDeleteFiles()">批量清理</button>
+                    </div>
+
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                <th>名称</th>
+                                <th>HDFS 路径</th>
+                                <th>大小</th>
+                                <th>类型</th>
+                                <th>副本数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileBody">
+                            <tr><td colspan="7">当前目录暂无归档文件</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-analysis">
+            <div class="analysis-layout">
+                <div class="panel">
+                    <div class="panel-title">目录容量分析</div>
+                    <div class="toolbar compact-toolbar">
+                        <div class="field">
+                            <label>归档目录</label>
+                            <input id="statsPathInput" type="text" placeholder="默认使用归档目录">
+                        </div>
+                        <button class="btn secondary" onclick="loadSizeStatistics()">统计容量</button>
+                    </div>
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="metric"><div class="metric-label">归档总容量</div><div class="metric-value" id="statTotalSize">--</div></div>
+                        <div class="metric"><div class="metric-label">文件数</div><div class="metric-value" id="statFileCount">--</div></div>
+                        <div class="metric"><div class="metric-label">目录数</div><div class="metric-value" id="statDirCount">--</div></div>
+                        <div class="metric"><div class="metric-label">总大小</div><div class="metric-value" id="statSizeMb">--</div></div>
+                    </div>
+                    <div class="panel-title" style="margin-top:18px;">容量占用 Top 文件</div>
+                    <table class="file-table">
+                        <thead><tr><th>名称</th><th>大小</th><th>HDFS 路径</th></tr></thead>
+                        <tbody id="topFilesBody"><tr><td colspan="3">暂无数据</td></tr></tbody>
+                    </table>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">目录结构分析</div>
+                    <div class="toolbar compact-toolbar">
+                        <div class="field">
+                            <label>分析路径</label>
+                            <input id="analysisPathInput" type="text" placeholder="默认使用归档目录">
+                        </div>
+                        <button class="btn secondary" onclick="loadDirectoryAnalysis()">分析目录</button>
+                    </div>
+                    <div class="stats-grid" id="analysisGrid">
+                        <div class="metric"><div class="metric-label">文件数</div><div class="metric-value" id="analysisFiles">--</div></div>
+                        <div class="metric"><div class="metric-label">目录数</div><div class="metric-value" id="analysisDirs">--</div></div>
+                        <div class="metric"><div class="metric-label">最大文件</div><div class="metric-value" id="analysisMaxFile">--</div></div>
+                        <div class="metric"><div class="metric-label">平均大小</div><div class="metric-value" id="analysisAvgSize">--</div></div>
+                    </div>
+                    <div id="fileTypeChart" class="chart-container"></div>
+                </div>
+
+                <div class="panel full-span">
+                    <div class="panel-title">文件内容预览</div>
+                    <div class="page-description">仅展示指定文件的前若干行，完整数据可通过下载文件查看。</div>
+                    <div class="toolbar preview-toolbar">
+                        <div class="field">
+                            <label>HDFS 文件路径</label>
+                            <input id="previewPathInput" type="text" placeholder="输入或从文件列表选择归档文件路径">
+                        </div>
+                        <div class="field">
+                            <label>预览行数</label>
+                            <input id="previewLinesInput" type="number" min="1" max="100" value="20">
+                        </div>
+                        <button class="btn secondary" onclick="loadDataPreview()">预览文件</button>
+                    </div>
+                    <div id="previewResult">
+                        <div class="message">仅允许访问平台配置的归档目录，避免误读非授权路径。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-charts">
+            <div class="panel">
+                <div class="panel-title">归档验证历史趋势</div>
+                <div id="trendChart" class="chart-container"></div>
+            </div>
+            <div class="chart-row">
+                <div class="panel">
+                    <div class="panel-title">写入 / 读取吞吐对比</div>
+                    <div id="throughputChart" class="chart-container"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">耗时分布</div>
+                    <div id="timeChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="tab-config">
+            <div class="panel">
+                <div class="panel-title">HDFS / HA 客户端配置</div>
+                <div class="page-description">展示 Hadoop 客户端当前读取到的 FileSystem 配置，用于说明 NameNode、HA 与默认文件系统来源。</div>
+                <table class="config-table">
+                    <thead><tr><th>参数</th><th>值</th></tr></thead>
+                    <tbody id="haConfigBody"><tr><td colspan="2">加载中...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/bigdata.js"></script>
+</body>
+</html>

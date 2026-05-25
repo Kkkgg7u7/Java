@@ -1,0 +1,15 @@
+package com.account;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication //springboot项目启动类
+@MapperScan("com.account.dao")
+public class AccountBookApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AccountBookApplication.class, args);
+    }
+
+}

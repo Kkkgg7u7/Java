@@ -1,0 +1,11 @@
+target/
+*.log
+.DS_Store
+**/.DS_Store
+
+data/
+!data/.gitkeep
+*.mv.db
+*.trace.db
+
+src/main/resources/static/js/*.map

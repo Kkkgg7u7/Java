@@ -1,0 +1,46 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  profiles:
+    active: demo
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: false
+    encoding: UTF-8
+
+  servlet:
+    multipart:
+      max-file-size: 64MB
+      max-request-size: 128MB
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.account.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.account: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+hadoop:
+  hdfs:
+    enabled: true
+    default-uri: ${HADOOP_DEFAULT_FS:hdfs://mycluster}
+    user: ${HADOOP_USER_NAME:${user.name}}
+    test-dir: ${HADOOP_TEST_DIR:/account-book/performance}
+    config-location: ${HADOOP_CONF_DIR:../hdfs-ha-config/etc/hadoop}
+    connect-timeout-ms: 10000
+    buffer-size: 131072

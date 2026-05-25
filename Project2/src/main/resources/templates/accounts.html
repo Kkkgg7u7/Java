@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>账户视图 - 财务数据控制台</title>
+    <link rel="stylesheet" href="/css/melody.css">
+</head>
+<body class="app-body">
+    <div class="sidebar">
+        <div class="logo">财务数据控制台</div>
+        <div class="nav-section">总览</div>
+        <a href="/index" class="nav-item">财务工作台</a>
+        <div class="nav-section">财务管理</div>
+        <a href="/accounts" class="nav-item active">账户视图</a>
+        <a href="/records" class="nav-item">流水明细</a>
+        <a href="/stats" class="nav-item">财务分析</a>
+        <div class="nav-section">数据平台</div>
+        <a href="/bigdata" class="nav-item">HDFS 归档中心</a>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div>
+                <div class="page-title">账户视图</div>
+                <div class="page-description">维护账户名称、账户类型、期初余额与当前余额，形成清晰的资金视图。</div>
+            </div>
+            <button class="add-btn" onclick="showAddModal()">新增账户</button>
+        </div>
+        <div class="accounts-grid" id="accountsGrid"></div>
+    </div>
+
+    <!-- 添加/编辑账户模态框 -->
+    <div id="accountModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+        <div style="background:white;border-radius:12px;padding:30px;width:90%;max-width:500px;box-shadow:0 20px 60px rgba(15,23,42,0.10);">
+            <div style="font-size:20px;font-weight:bold;margin-bottom:20px;" id="modalTitle">添加账户</div>
+            
+            <form onsubmit="saveAccount(event)">
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">账户名称 *</label>
+                    <input type="text" id="accountName" placeholder="如：支付宝、银行卡" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;"/>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">账户类型 *</label>
+                    <select id="accountTypeSelect" required style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;">
+                        <option value="">-- 选择类型 --</option>
+                        <option value="微信">微信</option>
+                        <option value="支付宝">支付宝</option>
+                        <option value="银行卡">银行卡</option>
+                        <option value="现金">现金</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;margin-bottom:5px;font-weight:bold;">初始余额</label>
+                    <input type="number" id="balance" step="0.01" min="0" value="0" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;"/>
+                </div>
+
+                <div style="display:flex;gap:10px;">
+                    <button type="submit" style="flex:1;padding:12px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">保存</button>
+                    <button type="button" onclick="closeModal()" style="flex:1;padding:12px;background:#ddd;color:#333;border:none;border-radius:6px;cursor:pointer;">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let editingAccountId = null;
+        let cachedAccounts = [];
+
+        function loadAccounts() {
+            fetch('/api/account/list')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        cachedAccounts = data.data || [];
+                        renderAccounts(data.data);
+                    } else if (data.message === '请先登录') {
+                        window.location.href = '/user/login';
+                    }
+                });
+        }
+
+        function renderAccounts(accounts) {
+            const grid = document.getElementById('accountsGrid');
+            if (!accounts || accounts.length === 0) {
+                grid.innerHTML = '<div style="text-align:center;color:#888;padding:40px;grid-column:1/-1;">暂无账户</div>';
+                return;
+            }
+            grid.innerHTML = accounts.map(a => `
+                <div class="account-card" style="position:relative;">
+                    <div style="position:absolute;top:10px;right:10px;display:flex;gap:5px;">
+                        <button class="btn secondary" style="padding:6px 10px;font-size:12px;" onclick="editAccount(${a.id})">编辑</button>
+                        <button class="btn btn-delete" style="padding:6px 10px;font-size:12px;" onclick="deleteAccount(${a.id})">删除</button>
+                    </div>
+                    <div class="account-name">${a.accountName}</div>
+                    <div class="account-type">${a.accountType || '其他'}</div>
+                    <div class="account-balance">¥${a.balance || 0}</div>
+                </div>
+            `).join('');
+        }
+
+        function showAddModal() {
+            editingAccountId = null;
+            document.getElementById('modalTitle').textContent = '添加账户';
+            document.getElementById('accountName').value = '';
+            document.getElementById('accountTypeSelect').value = '';
+            document.getElementById('balance').value = '0';
+            document.getElementById('accountModal').style.display = 'flex';
+        }
+
+        function editAccount(id) {
+            const account = cachedAccounts.find(a => a.id === id);
+            if (!account) {
+                alert('未找到该账户，请刷新后重试');
+                return;
+            }
+            editingAccountId = id;
+            document.getElementById('modalTitle').textContent = '编辑账户';
+            document.getElementById('accountName').value = account.accountName;
+            document.getElementById('accountTypeSelect').value = account.accountType || '';
+            document.getElementById('balance').value = account.balance || '0';
+            document.getElementById('accountModal').style.display = 'flex';
+        }
+
+        function saveAccount(event) {
+            event.preventDefault();
+            const accountName = document.getElementById('accountName').value;
+            const accountType = document.getElementById('accountTypeSelect').value;
+            const balance = document.getElementById('balance').value;
+
+            if (!accountName || !accountType) {
+                alert('请填写所有必填项');
+                return;
+            }
+
+            const url = editingAccountId ? '/api/account/update' : '/api/account/add';
+            const params = new FormData();
+            params.append('accountName', accountName);
+            params.append('accountType', accountType);
+            params.append('balance', balance);
+            if (editingAccountId) {
+                params.append('id', editingAccountId);
+            }
+
+            fetch(url, { method: 'POST', body: params })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        closeModal();
+                        loadAccounts();
+                    } else {
+                        alert(data.message || '操作失败');
+                    }
+                });
+        }
+
+        function closeModal() {
+            document.getElementById('accountModal').style.display = 'none';
+            editingAccountId = null;
+        }
+
+        function deleteAccount(id) {
+            if (confirm('确定删除此账户？')) {
+                const formData = new FormData();
+                formData.append('id', id);
+                fetch('/api/account/delete', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        loadAccounts();
+                    } else {
+                        alert(data.message || '删除失败');
+                    }
+                });
+            }
+        }
+
+        // 点击模态框外关闭
+        document.getElementById('accountModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        loadAccounts();
+    </script>
+</body>
+</html>

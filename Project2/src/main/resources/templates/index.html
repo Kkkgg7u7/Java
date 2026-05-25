@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务工作台 - 财务数据控制台</title>
+    <link rel="stylesheet" href="/css/melody.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body class="app-body">
+    <div class="sidebar">
+        <div class="logo">财务数据控制台</div>
+        <div class="nav-section">总览</div>
+        <a href="/index" class="nav-item active">财务工作台</a>
+        <div class="nav-section">财务管理</div>
+        <a href="/accounts" class="nav-item">账户视图</a>
+        <a href="/records" class="nav-item">流水明细</a>
+        <a href="/stats" class="nav-item">财务分析</a>
+        <div class="nav-section">数据平台</div>
+        <a href="/bigdata" class="nav-item">HDFS 归档中心</a>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <div class="global-search">
+                <span>搜索流水、账户、分类或 HDFS 文件</span>
+            </div>
+            <div class="topbar-actions">
+                <span class="badge ok">Spring Boot 服务正常</span>
+                <span class="badge archive" id="topHdfsBadge">HDFS 检测中</span>
+                <button class="logout-btn" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+
+        <section class="page-header">
+            <div>
+                <div class="page-eyebrow">财务数据与归档状态</div>
+                <h1 class="page-title">财务工作台</h1>
+                <div class="page-description">汇总企业收支、流水变化与 HDFS 归档状态，支持财务数据的统一管理与长期留存。</div>
+            </div>
+            <div class="topbar-actions">
+                <a class="btn secondary" href="/records">新增流水</a>
+                <a class="btn" href="/bigdata">进入 HDFS 归档</a>
+            </div>
+        </section>
+
+        <div class="status-strip">
+            <div class="status-item"><span class="status-dot"></span>Spring Boot Controller 已就绪</div>
+            <div class="status-item"><span class="status-dot"></span>Hadoop FileSystem API 已接入</div>
+            <div class="status-item"><span class="status-dot"></span><span id="archiveDir">归档路径检测中</span></div>
+            <div class="status-item"><span class="status-dot"></span><span id="hdfsMode">HDFS 状态检测中</span></div>
+        </div>
+
+        <div class="stats-cards">
+            <div class="card kpi-card">
+                <div class="card-title">本月收入</div>
+                <div class="card-value income" id="totalIncome">¥0.00</div>
+                <div class="kpi-foot"><span>已入账收入流水</span><span id="incomeCount">--</span></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="card-title">本月支出</div>
+                <div class="card-value expense" id="totalExpense">¥0.00</div>
+                <div class="kpi-foot"><span>已入账支出流水</span><span id="expenseCount">--</span></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="card-title">净现金流</div>
+                <div class="card-value balance" id="totalBalance">¥0.00</div>
+                <div class="kpi-foot"><span>当前账期经营结果</span><span id="cashflowHint">--</span></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="card-title">HDFS 归档状态</div>
+                <div class="card-value archive" id="hdfsState">检测中</div>
+                <div class="kpi-foot"><span>FileSystem API</span><span id="hdfsProbe">--</span></div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div>
+                <div class="dashboard-charts">
+                    <div class="chart-box">
+                        <div class="chart-title">收支趋势</div>
+                        <div class="page-description">按账期统计收入、支出与净现金流变化。</div>
+                        <div id="trendChart" style="height: 310px;"></div>
+                    </div>
+                    <div class="chart-box">
+                        <div class="chart-title">收支结构</div>
+                        <div class="page-description">基于流水分类统计资金流向。</div>
+                        <div id="categoryChart" style="height: 310px;"></div>
+                    </div>
+                </div>
+
+                <div class="overview-panel" style="margin-top:18px;">
+                    <div class="page-header" style="margin-bottom:6px;">
+                        <div>
+                            <div class="chart-title">最近流水</div>
+                            <div class="page-description">展示最新入账、支出与归档相关数据。</div>
+                        </div>
+                        <a class="btn secondary" href="/records">查看全部</a>
+                    </div>
+                    <div class="recent-list" id="recentRecords">
+                        <div class="empty-state">正在加载流水数据...</div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="chain-panel">
+                <div class="chart-title">HDFS 归档链路</div>
+                <div class="page-description">财务流水经 Spring Boot 服务进入 Hadoop FileSystem API，并写入 HDFS 归档目录。</div>
+                <div class="chain-list">
+                    <div class="chain-item">
+                        <strong>业务接口</strong>
+                        <span>Spring Boot Controller</span>
+                        <span class="badge ok">正常</span>
+                    </div>
+                    <div class="chain-item">
+                        <strong>服务层</strong>
+                        <span>ArchiveService / HDFSUtil</span>
+                        <span class="badge ok">就绪</span>
+                    </div>
+                    <div class="chain-item">
+                        <strong>Hadoop API</strong>
+                        <span>create / open / listStatus</span>
+                        <span class="badge archive" id="apiState">检测中</span>
+                    </div>
+                    <div class="chain-item">
+                        <strong>NameNode</strong>
+                        <span id="nameNodeUri">--</span>
+                        <span class="badge archive" id="nameNodeState">检测中</span>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <a class="btn" href="/bigdata">执行归档验证</a>
+                    <a class="btn secondary" href="/stats">查看财务分析</a>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        function logout() {
+            window.location.href = '/user/logout';
+        }
+
+        function formatMoney(value) {
+            return '¥' + Number(value || 0).toLocaleString('zh-CN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function loadDashboard() {
+            fetch('/api/statistics/dashboard')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        const d = data.data || {};
+                        const income = Number(d.monthlyIncome || 0);
+                        const expense = Number(d.monthlyExpense || 0);
+                        const balance = Number(d.totalBalance || 0);
+                        document.getElementById('totalIncome').textContent = formatMoney(income);
+                        document.getElementById('totalExpense').textContent = formatMoney(expense);
+                        document.getElementById('totalBalance').textContent = formatMoney(balance);
+                        document.getElementById('cashflowHint').textContent = income >= expense ? '收入覆盖良好' : '支出高于收入';
+                    } else if (data.message === '请先登录') {
+                        window.location.href = '/user/login';
+                    }
+                });
+
+            fetch('/api/statistics/category/expense')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        initCategoryChart(data.data || []);
+                    }
+                });
+
+            fetch('/api/statistics/trend')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        initTrendChart(data.data || []);
+                    }
+                });
+
+            fetch('/api/record/list')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        const records = data.data || [];
+                        const incomeCount = records.filter(item => item.type === 1).length;
+                        const expenseCount = records.filter(item => item.type !== 1).length;
+                        document.getElementById('incomeCount').textContent = incomeCount + ' 笔';
+                        document.getElementById('expenseCount').textContent = expenseCount + ' 笔';
+                        renderRecentRecords(records.slice(0, 7));
+                    }
+                });
+
+            fetch('/api/hdfs/health')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.code !== 200) {
+                        setHdfsState(false, data.message || '检测失败', {});
+                        return;
+                    }
+                    const health = data.data || {};
+                    setHdfsState(Boolean(health.connected), health.message || '', health);
+                })
+                .catch(err => setHdfsState(false, err.message, {}));
+        }
+
+        function setHdfsState(ok, message, health) {
+            document.getElementById('hdfsState').textContent = ok ? '已连接' : '未连接';
+            document.getElementById('topHdfsBadge').textContent = ok ? 'HDFS 集群已连接' : 'HDFS 未连接';
+            document.getElementById('topHdfsBadge').className = 'badge ' + (ok ? 'archive' : 'error');
+            document.getElementById('apiState').textContent = ok ? '可用' : '不可用';
+            document.getElementById('apiState').className = 'badge ' + (ok ? 'archive' : 'error');
+            document.getElementById('nameNodeState').textContent = ok ? 'Active' : '异常';
+            document.getElementById('nameNodeState').className = 'badge ' + (ok ? 'ok' : 'error');
+            document.getElementById('nameNodeUri').textContent = health.uri || health.defaultFs || '--';
+            document.getElementById('archiveDir').textContent = health.baseDir ? '归档路径：' + health.baseDir : (message || '归档路径未读取');
+            document.getElementById('hdfsMode').textContent = (health.scheme === 'file' ? '本地文件系统兼容模式' : 'HDFS 集群模式') + (health.probeMillis != null ? ' · ' + health.probeMillis + ' ms' : '');
+            document.getElementById('hdfsProbe').textContent = health.probeMillis != null ? health.probeMillis + ' ms' : '--';
+        }
+
+        function renderRecentRecords(records) {
+            const wrap = document.getElementById('recentRecords');
+            if (!records.length) {
+                wrap.innerHTML = '<div class="empty-state">暂无流水数据，请新增收入或支出记录。</div>';
+                return;
+            }
+            wrap.innerHTML = records.map((record) => `
+                <div class="recent-item">
+                    <div>
+                        <div class="recent-title">${record.category || '未分类'} · ${record.type === 1 ? '收入流水' : '支出流水'}</div>
+                        <div class="recent-meta">${record.recordDate || ''} · ${record.accountType || '未选择账户'} · ${record.remark || '无备注'}</div>
+                    </div>
+                    <div class="recent-amount ${record.type === 1 ? 'income' : 'expense'}">${record.type === 1 ? '+' : '-'}${formatMoney(record.amount)}</div>
+                </div>
+            `).join('');
+        }
+
+        function initTrendChart(data) {
+            const chartEl = document.getElementById('trendChart');
+            const months = Array.from({ length: 12 }, (_, i) => `${i + 1}月`);
+            const income = Array(12).fill(0);
+            const expense = Array(12).fill(0);
+            (data || []).forEach(item => {
+                const month = Number(item.recordMonth || item.month);
+                if (month >= 1 && month <= 12) {
+                    income[month - 1] = Number(item.totalIncome || 0);
+                    expense[month - 1] = Number(item.totalExpense || 0);
+                }
+            });
+            if (typeof echarts === 'undefined') {
+                renderFallbackRows(chartEl, months.map((m, i) => ({
+                    name: m,
+                    value: income[i] + expense[i]
+                })).filter(item => item.value > 0));
+                return;
+            }
+            const chart = echarts.init(chartEl);
+            chart.setOption({
+                color: ['#2f4f8f', '#b7791f'],
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['收入', '支出'], top: 0, textStyle: { color: '#687385' } },
+                grid: { left: 42, right: 20, top: 44, bottom: 30 },
+                xAxis: { type: 'category', data: months, axisLine: { lineStyle: { color: '#dbe1ec' } }, axisLabel: { color: '#687385' } },
+                yAxis: { type: 'value', splitLine: { lineStyle: { color: '#eef1f6' } }, axisLabel: { color: '#687385' } },
+                series: [
+                    { name: '收入', type: 'line', smooth: true, data: income, symbolSize: 6, lineStyle: { width: 3 } },
+                    { name: '支出', type: 'line', smooth: true, data: expense, symbolSize: 6, lineStyle: { width: 3 } }
+                ]
+            });
+        }
+
+        function initCategoryChart(data) {
+            const chartEl = document.getElementById('categoryChart');
+            const chartData = data ? data.map(item => ({
+                name: item.categoryName || item.category || '其他',
+                value: Number(item.totalAmount || item.amount || 0)
+            })) : [];
+            if (typeof echarts === 'undefined') {
+                renderFallbackRows(chartEl, chartData);
+                return;
+            }
+            const chart = echarts.init(chartEl);
+            chart.setOption({
+                color: ['#2f4f8f', '#b7791f', '#64748b', '#2f855a', '#a16207', '#c2410c'],
+                tooltip: { trigger: 'item' },
+                series: [{
+                    type: 'pie',
+                    radius: ['46%', '68%'],
+                    data: chartData.length > 0 ? chartData : [{ name: '暂无数据', value: 0 }],
+                    itemStyle: { borderColor: '#ffffff', borderWidth: 3 },
+                    label: { color: '#687385' }
+                }]
+            });
+        }
+
+        function renderFallbackRows(container, data) {
+            const rows = data && data.length > 0 ? data : [{ name: '暂无数据', value: 0 }];
+            const max = Math.max(...rows.map(item => Number(item.value || 0)), 1);
+            container.innerHTML = `<div class="chart-fallback">${rows.map(item => {
+                const value = Number(item.value || 0);
+                const width = Math.max(value / max * 100, value > 0 ? 8 : 0);
+                return `<div class="fallback-row">
+                    <span>${item.name}</span>
+                    <div class="fallback-bar"><div class="fallback-fill" style="width:${width}%"></div></div>
+                    <span>¥${value}</span>
+                </div>`;
+            }).join('')}</div>`;
+        }
+
+        loadDashboard();
+        window.addEventListener('resize', () => {
+            if (typeof echarts === 'undefined') return;
+            const trendChart = echarts.getInstanceByDom(document.getElementById('trendChart'));
+            const categoryChart = echarts.getInstanceByDom(document.getElementById('categoryChart'));
+            if (trendChart) trendChart.resize();
+            if (categoryChart) categoryChart.resize();
+        });
+    </script>
+</body>
+</html>

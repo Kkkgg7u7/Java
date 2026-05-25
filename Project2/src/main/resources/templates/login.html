@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 财务数据控制台</title>
+    <link rel="stylesheet" href="/css/melody.css">
+</head>
+<body>
+    <main class="login-page">
+        <div class="login-shell">
+            <section class="login-card">
+                <div class="login-brand">
+                    <div class="brand-mark" aria-hidden="true"></div>
+                    <div>
+                        <div class="brand-title">财务数据控制台</div>
+                        <div class="brand-subtitle">流水管理与 HDFS 数据归档</div>
+                    </div>
+                </div>
+
+                <div class="login-form">
+                    <h1 id="formTitle">登录控制台</h1>
+                    <div class="hint" id="formHint">进入系统后可查看财务工作台、维护流水明细，并管理 HDFS 归档链路。</div>
+
+                    <div class="form-group">
+                        <label for="username">用户名</label>
+                        <input type="text" id="username" placeholder="请输入用户名" autocomplete="username">
+                    </div>
+                    <div class="form-group" id="nicknameGroup" style="display:none;">
+                        <label for="nickname">显示名称</label>
+                        <input type="text" id="nickname" placeholder="用于页面展示，可选">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+                    </div>
+
+                    <button class="login-btn" id="submitBtn" onclick="submitForm()">登录系统</button>
+                    <div class="error-msg" id="errorMsg"></div>
+                    <div class="switch-link" id="switchLink" onclick="toggleMode()">创建账户</div>
+                </div>
+            </section>
+
+            <section class="login-intel">
+                <div class="intel-heading">
+                    <div class="page-eyebrow">企业财务数据平台</div>
+                    <h2>企业级财务数据与 HDFS 归档平台</h2>
+                    <p>以 Spring Boot 承载业务接口，通过 Hadoop FileSystem API 管理 HDFS 归档目录，让财务流水从业务录入到文件留存形成完整链路。</p>
+                </div>
+
+                <div class="architecture-card" aria-label="运行架构">
+                    <div class="architecture-node">
+                        <div class="node-icon">API</div>
+                        <div>
+                            <strong>Spring Boot 服务层</strong>
+                            <span>Controller / Service / 数据接口</span>
+                        </div>
+                        <span class="badge ok">运行中</span>
+                    </div>
+                    <div class="architecture-node">
+                        <div class="node-icon">FS</div>
+                        <div>
+                            <strong>Hadoop FileSystem API</strong>
+                            <span>create / open / listStatus / getContentSummary</span>
+                        </div>
+                        <span class="badge archive">已接入</span>
+                    </div>
+                    <div class="architecture-node">
+                        <div class="node-icon">DFS</div>
+                        <div>
+                            <strong>HDFS 归档目录</strong>
+                            <span>财务文件上传、预览、容量分析与吞吐验证</span>
+                        </div>
+                        <span class="badge warn">可检测</span>
+                    </div>
+                </div>
+
+                <div class="intel-footer">
+                    <span class="badge archive">财务工作台</span>
+                    <span class="badge archive">流水明细</span>
+                    <span class="badge archive">HDFS 归档中心</span>
+                    <span class="badge">服务状态可视化</span>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        let registerMode = false;
+
+        function submitForm() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const nickname = document.getElementById('nickname').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!username || !password) {
+                errorMsg.textContent = '请输入用户名和密码';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            if (registerMode) {
+                formData.append('nickname', nickname);
+            }
+
+            fetch(registerMode ? '/user/register' : '/user/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    window.location.href = '/index';
+                } else {
+                    errorMsg.textContent = data.message || '请求未完成，请稍后重试';
+                    errorMsg.style.display = 'block';
+                }
+            })
+            .catch(() => {
+                errorMsg.textContent = registerMode ? '创建账户失败，请稍后重试' : '登录未成功，请检查账号信息';
+                errorMsg.style.display = 'block';
+            });
+        }
+
+        function toggleMode() {
+            registerMode = !registerMode;
+            document.getElementById('formTitle').textContent = registerMode ? '创建账户' : '登录控制台';
+            document.getElementById('formHint').textContent = registerMode ? '系统将初始化账户与流水分类，便于开始使用。' : '进入系统后可查看财务工作台、维护流水明细，并管理 HDFS 归档链路。';
+            document.getElementById('nicknameGroup').style.display = registerMode ? 'block' : 'none';
+            document.getElementById('submitBtn').textContent = registerMode ? '创建并进入' : '登录系统';
+            document.getElementById('switchLink').textContent = registerMode ? '返回登录' : '创建账户';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitForm();
+            }
+        });
+    </script>
+</body>
+</html>

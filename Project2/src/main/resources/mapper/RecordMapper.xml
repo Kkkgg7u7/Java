@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.account.dao.RecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.account.entity.Record">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="type" property="type"/>
+        <result column="amount" property="amount"/>
+        <result column="category" property="category"/>
+        <result column="account_type" property="accountType"/>
+        <result column="record_date" property="recordDate"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, type, amount, category, account_type, record_date, remark, create_time
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM record
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM record
+        WHERE user_id = #{userId}
+        ORDER BY record_date DESC, create_time DESC
+    </select>
+
+    <select id="selectByCondition" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM record
+        WHERE user_id = #{userId}
+        <if test="type != null">AND type = #{type}</if>
+        <if test="category != null and category != ''">AND category = #{category}</if>
+        <if test="accountType != null and accountType != ''">AND account_type = #{accountType}</if>
+        <if test="startDate != null">AND record_date &gt;= #{startDate}</if>
+        <if test="endDate != null">AND record_date &lt;= #{endDate}</if>
+        ORDER BY record_date DESC, create_time DESC
+    </select>
+
+    <insert id="insert" parameterType="com.account.entity.Record" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO record (user_id, type, amount, category, account_type, record_date, remark, create_time)
+        VALUES (#{userId}, #{type}, #{amount}, #{category}, #{accountType}, #{recordDate}, #{remark}, #{createTime})
+    </insert>
+
+    <update id="update" parameterType="com.account.entity.Record">
+        UPDATE record
+        <set>
+            <if test="type != null">type = #{type},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="accountType != null">account_type = #{accountType},</if>
+            <if test="recordDate != null">record_date = #{recordDate},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM record WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByUserId">
+        DELETE FROM record WHERE user_id = #{userId}
+    </delete>
+
+    <select id="selectMonthlyStatistics" resultType="java.util.Map">
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS totalIncome,
+            COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS totalExpense
+        FROM record
+        WHERE user_id = #{userId}
+        AND EXTRACT(YEAR FROM record_date) = #{year}
+        AND EXTRACT(MONTH FROM record_date) = #{month}
+    </select>
+
+    <select id="selectSummaryStatistics" resultType="java.util.Map">
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS totalIncome,
+            COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS totalExpense
+        FROM record
+        WHERE user_id = #{userId}
+        <if test="year != null">AND EXTRACT(YEAR FROM record_date) = #{year}</if>
+        <if test="month != null">AND EXTRACT(MONTH FROM record_date) = #{month}</if>
+    </select>
+
+    <select id="selectCategoryStatistics" resultType="java.util.Map">
+        SELECT
+            category AS categoryName,
+            SUM(amount) AS totalAmount
+        FROM record
+        WHERE user_id = #{userId}
+        AND type = #{type}
+        <if test="year != null">AND EXTRACT(YEAR FROM record_date) = #{year}</if>
+        <if test="month != null">AND EXTRACT(MONTH FROM record_date) = #{month}</if>
+        GROUP BY category
+        ORDER BY totalAmount DESC
+    </select>
+
+    <select id="selectMonthlyTrend" resultType="java.util.Map">
+        SELECT
+            EXTRACT(MONTH FROM record_date) AS recordMonth,
+            COALESCE(SUM(CASE WHEN type = 1 THEN amount ELSE 0 END), 0) AS totalIncome,
+            COALESCE(SUM(CASE WHEN type = 0 THEN amount ELSE 0 END), 0) AS totalExpense
+        FROM record
+        WHERE user_id = #{userId}
+        AND EXTRACT(YEAR FROM record_date) = #{year}
+        GROUP BY EXTRACT(MONTH FROM record_date)
+        ORDER BY recordMonth
+    </select>
+
+</mapper>

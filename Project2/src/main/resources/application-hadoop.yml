@@ -1,0 +1,8 @@
+hadoop:
+  hdfs:
+    default-uri: ${HADOOP_DEFAULT_FS:hdfs://mycluster}
+    user: ${HADOOP_USER_NAME:${user.name}}
+    config-location: ${HADOOP_CONF_DIR:../hdfs-ha-config/etc/hadoop}
+    test-dir: ${HADOOP_TEST_DIR:/account-book/performance}
+    connect-timeout-ms: ${HADOOP_CONNECT_TIMEOUT_MS:10000}
+    buffer-size: ${HADOOP_BUFFER_SIZE:131072}
